@@ -11,8 +11,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// A profile the app runs "as". This is a lightweight profile selector, not
+// authentication: anyone can pick any user from the switcher modal.
+model User {
+  id        String           @id @default(cuid())
+  name      String
+  color     String? // hex color used for the avatar/accent in the UI
+  createdAt DateTime         @default(now())
+  sessions  RunningSession[]
+}
+
 model RunningSession {
   id               String   @id @default(cuid())
+  userId           String
   date             DateTime
   startTime        String
   endTime          String
@@ -27,7 +38,7 @@ model RunningSession {
 
   // Optional metrics, populated when importing from a Garmin .FIT file.
   // All nullable so manually-entered sessions remain valid.
-  externalId       String?  @unique // Garmin activity id (from the file name)
+  externalId       String? // Garmin activity id (from the file name); unique per user
   durationSeconds  Int? // precise elapsed time
   avgCadenceSpm    Int? // steps per minute
   maxCadenceSpm    Int?
@@ -47,10 +58,13 @@ model RunningSession {
   endLng           Float?
 
   track     SessionTrack?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([userId, externalId])
   @@index([date])
+  @@index([userId, date])
 }
 
 // Full second-by-second GPS/sensor track for an imported session, stored as a

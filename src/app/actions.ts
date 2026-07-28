@@ -12,6 +12,7 @@ import {
   type ImportExtras,
 } from "@/lib/fit-to-session";
 import { extractFit, externalIdFromFileName } from "@/lib/import-file";
+import { requireCurrentUserId } from "@/server/current-user";
 
 export interface ActionResult {
   ok: boolean;
@@ -66,9 +67,16 @@ export async function createSession(input: unknown): Promise<ActionResult> {
   }
   const data = parsed.data;
   const extras = readExtras(input);
+  let userId: string;
+  try {
+    userId = await requireCurrentUserId();
+  } catch {
+    return { ok: false, error: "Aucun utilisateur sélectionné" };
+  }
   try {
     await prisma.runningSession.create({
       data: {
+        userId,
         date: dayKeyToDate(data.date),
         startTime: data.startTime,
         endTime: data.endTime,
@@ -131,9 +139,17 @@ export async function updateSession(
     return { ok: false, fieldErrors: flatten(parsed.error) };
   }
   const data = parsed.data;
+  let userId: string;
   try {
-    await prisma.runningSession.update({
-      where: { id },
+    userId = await requireCurrentUserId();
+  } catch {
+    return { ok: false, error: "Aucun utilisateur sélectionné" };
+  }
+  try {
+    // updateMany scopes the write to the current user: a session belonging to
+    // another profile matches zero rows and is left untouched.
+    const result = await prisma.runningSession.updateMany({
+      where: { id, userId },
       data: {
         date: dayKeyToDate(data.date),
         startTime: data.startTime,
@@ -149,6 +165,9 @@ export async function updateSession(
         comment: data.comment?.trim() || null,
       },
     });
+    if (result.count === 0) {
+      return { ok: false, error: "Séance introuvable" };
+    }
   } catch {
     return { ok: false, error: "Échec de la modification" };
   }
@@ -161,12 +180,20 @@ export async function parseImport(formData: FormData): Promise<ImportResult> {
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Aucun fichier sélectionné." };
   }
+  let userId: string;
+  try {
+    userId = await requireCurrentUserId();
+  } catch {
+    return { ok: false, error: "Aucun utilisateur sélectionné" };
+  }
   try {
     const { bytes, fitFileName } = await extractFit(file);
     const externalId = externalIdFromFileName(fitFileName);
 
-    const existing = await prisma.runningSession.findUnique({
-      where: { externalId },
+    // Duplicate check is per user: two profiles may each import the same
+    // Garmin activity independently.
+    const existing = await prisma.runningSession.findFirst({
+      where: { userId, externalId },
     });
     if (existing) {
       return { ok: false, error: "Cette séance a déjà été importée." };
@@ -191,8 +218,20 @@ export async function parseImport(formData: FormData): Promise<ImportResult> {
 
 export async function deleteSession(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Identifiant manquant" };
+  let userId: string;
   try {
-    await prisma.runningSession.delete({ where: { id } });
+    userId = await requireCurrentUserId();
+  } catch {
+    return { ok: false, error: "Aucun utilisateur sélectionné" };
+  }
+  try {
+    // Scoped delete: another profile's session matches zero rows.
+    const result = await prisma.runningSession.deleteMany({
+      where: { id, userId },
+    });
+    if (result.count === 0) {
+      return { ok: false, error: "Séance introuvable" };
+    }
   } catch {
     return { ok: false, error: "Échec de la suppression" };
   }

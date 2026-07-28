@@ -7,16 +7,25 @@ import { formatDistanceTotal } from "@/lib/format";
 import { formatDurationFromMinutes } from "@/lib/duration";
 import { monthLabel, shiftMonthKey, todayMonthKey } from "@/lib/date";
 import type { PeriodTotals } from "@/lib/stats";
+import type { UserDTO } from "@/server/users";
 
 import { Button } from "@/components/ui/button";
+import { UserSwitcher } from "@/components/user/UserSwitcher";
 import { ImportButton } from "./ImportButton";
 
 interface CalendarHeaderProps {
   monthKey: string;
   monthTotals: PeriodTotals;
+  currentUser: UserDTO;
+  users: UserDTO[];
 }
 
-export function CalendarHeader({ monthKey, monthTotals }: CalendarHeaderProps) {
+export function CalendarHeader({
+  monthKey,
+  monthTotals,
+  currentUser,
+  users,
+}: CalendarHeaderProps) {
   const prev = shiftMonthKey(monthKey, -1);
   const next = shiftMonthKey(monthKey, 1);
   const current = todayMonthKey();
@@ -53,7 +62,6 @@ export function CalendarHeader({ monthKey, monthTotals }: CalendarHeaderProps) {
         </Button>
       </div>
       <div className="flex items-center gap-2">
-        <ImportButton />
         {monthKey !== current && (
           <Button asChild variant="ghost" size="sm">
             <Link href="/">
@@ -62,6 +70,8 @@ export function CalendarHeader({ monthKey, monthTotals }: CalendarHeaderProps) {
             </Link>
           </Button>
         )}
+        <ImportButton />
+        <UserSwitcher currentUser={currentUser} users={users} />
       </div>
     </header>
   );

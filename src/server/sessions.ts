@@ -17,14 +17,17 @@ export interface SessionDTO {
   comment: string | null;
 }
 
-// Loads all sessions whose date falls in [rangeStartKey, rangeEndKey] inclusive.
-// Used by the calendar to populate both day cells and weekly stats.
+// Loads all sessions of a given user whose date falls in
+// [rangeStartKey, rangeEndKey] inclusive. Used by the calendar to populate both
+// day cells and weekly stats.
 export async function getSessionsForRange(
+  userId: string,
   rangeStartKey: string,
   rangeEndKey: string,
 ): Promise<SessionDTO[]> {
   const rows = await prisma.runningSession.findMany({
     where: {
+      userId,
       date: {
         gte: dayKeyToDate(rangeStartKey),
         lte: dayKeyToDate(rangeEndKey),
@@ -49,8 +52,13 @@ export async function getSessionsForRange(
   }));
 }
 
-export async function getSessionById(id: string): Promise<SessionDTO | null> {
-  const row = await prisma.runningSession.findUnique({ where: { id } });
+// Scoped by userId so a session can never be read across profiles, even with a
+// guessed id.
+export async function getSessionById(
+  userId: string,
+  id: string,
+): Promise<SessionDTO | null> {
+  const row = await prisma.runningSession.findFirst({ where: { id, userId } });
   if (!row) return null;
   return {
     id: row.id,
