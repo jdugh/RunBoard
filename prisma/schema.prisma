@@ -1,0 +1,64 @@
+// Prisma schema for the running calendar app.
+// SQLite does not support native enums, so runType is stored as a String
+// and validated at the application layer (Zod).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model RunningSession {
+  id               String   @id @default(cuid())
+  date             DateTime
+  startTime        String
+  endTime          String
+  distanceKm       Float
+  averageHeartRate Int
+  maxHeartRate     Int
+  averagePace      String
+  maxPace          String
+  runType          String
+  customRunType    String?
+  comment          String?
+
+  // Optional metrics, populated when importing from a Garmin .FIT file.
+  // All nullable so manually-entered sessions remain valid.
+  externalId       String?  @unique // Garmin activity id (from the file name)
+  durationSeconds  Int? // precise elapsed time
+  avgCadenceSpm    Int? // steps per minute
+  maxCadenceSpm    Int?
+  steps            Int?
+  calories         Int?
+  restingCalories  Int?
+  elevationGainM   Int?
+  elevationLossM   Int?
+  sweatLossMl      Int?
+  sport            String?
+  subSport         String?
+  sportProfileName String?
+  numLaps          Int?
+  startLat         Float?
+  startLng         Float?
+  endLat           Float?
+  endLng           Float?
+
+  track     SessionTrack?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
+// Full second-by-second GPS/sensor track for an imported session, stored as a
+// JSON array. Kept in a separate table so the calendar queries never load it.
+model SessionTrack {
+  id        String         @id @default(cuid())
+  sessionId String         @unique
+  session   RunningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  points    String // JSON: [{ t, lat, lng, alt, hr, cad, d }]
+  createdAt DateTime       @default(now())
+}
