@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    environment:
+      # SQLite stockée dans le volume `data`, pas dans le conteneur
+      DATABASE_URL: "file:/app/data/prod.db"
+    volumes:
+      - data:/app/data
+    restart: unless-stopped
+
+volumes:
+  data:
