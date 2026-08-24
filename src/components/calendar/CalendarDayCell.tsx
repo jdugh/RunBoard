@@ -14,7 +14,7 @@ export function CalendarDayCell({ day, sessions }: CalendarDayCellProps) {
   return (
     <div
       className={cn(
-        "min-h-[110px] border-r border-b p-1 flex flex-col gap-1",
+        "min-h-[5rem] border-r border-b p-1 flex flex-col gap-0.5",
         !day.isCurrentMonth && "bg-muted/40 text-muted-foreground",
       )}
     >

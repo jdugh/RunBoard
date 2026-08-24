@@ -16,6 +16,10 @@ export function formatDistanceTotal(km: number): string {
   return `${distanceFormatterTotal.format(km)} km`;
 }
 
+export function formatHeartRate(bpm: number): string {
+  return `${Math.round(bpm)} bpm`;
+}
+
 export const RUN_TYPE_LABELS: Record<string, string> = {
   EF: "EF",
   FRACTIONNE: "Fractionné",

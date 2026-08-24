@@ -23,21 +23,21 @@ export function CalendarGrid({ grid, sessions }: CalendarGridProps) {
   return (
     <div className="rounded-lg border bg-card overflow-hidden">
       <div
-        className="grid grid-cols-[3rem_repeat(7,minmax(0,1fr))_7rem] border-b text-xs font-medium"
+        className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))_8.5rem] border-b text-xs font-medium"
         aria-label="En-tête du calendrier"
       >
-        <div className="border-r p-2 text-center text-muted-foreground">
+        <div className="border-r px-2 py-1 text-center text-muted-foreground">
           Sem.
         </div>
         {WEEKDAY_LABELS.map((label) => (
           <div
             key={label}
-            className="border-r p-2 text-center text-muted-foreground"
+            className="border-r px-2 py-1 text-center text-muted-foreground"
           >
             {label}
           </div>
         ))}
-        <div className="p-2 text-center text-muted-foreground">
+        <div className="px-2 py-1 text-center text-muted-foreground">
           Total semaine
         </div>
       </div>
@@ -50,9 +50,9 @@ export function CalendarGrid({ grid, sessions }: CalendarGridProps) {
         return (
           <div
             key={weekIdx}
-            className="grid grid-cols-[3rem_repeat(7,minmax(0,1fr))_7rem]"
+            className="grid grid-cols-[2.5rem_repeat(7,minmax(0,1fr))_8.5rem]"
           >
-            <div className="border-r border-b p-2 flex items-center justify-center text-xs font-medium text-muted-foreground tabular-nums bg-muted/30">
+            <div className="border-r border-b p-1 flex items-center justify-center text-xs font-medium text-muted-foreground tabular-nums bg-muted/30">
               {week.isoWeek}
             </div>
             {week.days.map((day) => (

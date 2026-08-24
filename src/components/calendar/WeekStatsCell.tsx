@@ -1,5 +1,5 @@
-import { formatDistanceTotal } from "@/lib/format";
-import { formatDurationFromMinutes } from "@/lib/duration";
+import { formatDistanceTotal, formatHeartRate } from "@/lib/format";
+import { formatDurationCompact } from "@/lib/duration";
 import type { PeriodTotals } from "@/lib/stats";
 
 interface WeekStatsCellProps {
@@ -9,25 +9,34 @@ interface WeekStatsCellProps {
 export function WeekStatsCell({ totals }: WeekStatsCellProps) {
   const empty = totals.sessionCount === 0;
   return (
-    <div className="min-h-[110px] border-b p-2 bg-muted/30 flex flex-col justify-center gap-1 text-xs">
+    <div className="min-h-[5rem] border-b p-2 bg-muted/30 flex flex-col justify-center gap-0.5 text-[11px] leading-tight">
       {empty ? (
         <span className="text-muted-foreground italic">—</span>
       ) : (
         <>
-          <div>
-            <div className="text-muted-foreground">Distance</div>
-            <div className="font-semibold tabular-nums">
-              {formatDistanceTotal(totals.distanceKm)}
-            </div>
-          </div>
-          <div>
-            <div className="text-muted-foreground">Durée</div>
-            <div className="font-semibold tabular-nums">
-              {formatDurationFromMinutes(totals.durationMinutes)}
-            </div>
-          </div>
+          <Stat label="Dist." value={formatDistanceTotal(totals.distanceKm)} />
+          <Stat
+            label="Durée"
+            value={formatDurationCompact(totals.durationMinutes)}
+          />
+          {totals.averageHeartRate !== null && (
+            <Stat
+              label="FC"
+              value={formatHeartRate(totals.averageHeartRate)}
+            />
+          )}
         </>
       )}
+    </div>
+  );
+}
+
+// Label left, value right — one line per stat so the week column stays short.
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-1">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold tabular-nums">{value}</span>
     </div>
   );
 }

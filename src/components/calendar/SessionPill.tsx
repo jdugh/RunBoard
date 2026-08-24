@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { SessionDTO } from "@/server/sessions";
-import { runTypeLabel, formatDistanceKm } from "@/lib/format";
+import { runTypeLabel, formatDistanceKm, formatHeartRate } from "@/lib/format";
 import { sessionDurationMinutes, formatDurationCompact } from "@/lib/duration";
 import { deleteSession } from "@/app/actions";
 import { cn } from "@/lib/utils";
@@ -87,9 +87,19 @@ export function SessionPill({ session }: SessionPillProps) {
             </button>
           </div>
         </div>
-        <div className="flex justify-between text-[10px] opacity-90">
-          <span>{formatDistanceKm(session.distanceKm)}</span>
-          <span>{duration}</span>
+        <div className="flex items-baseline justify-between gap-1 text-[10px] opacity-90">
+          <span className="tabular-nums">
+            {formatDistanceKm(session.distanceKm)}
+          </span>
+          {session.averageHeartRate > 0 && (
+            <span
+              className="tabular-nums"
+              title={`FC moyenne : ${formatHeartRate(session.averageHeartRate)}`}
+            >
+              {formatHeartRate(session.averageHeartRate)}
+            </span>
+          )}
+          <span className="tabular-nums">{duration}</span>
         </div>
       </div>
 

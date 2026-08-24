@@ -5,25 +5,40 @@ export interface SessionForStats {
   startTime: string;
   endTime: string;
   distanceKm: number;
+  averageHeartRate: number;
 }
 
 export interface PeriodTotals {
   distanceKm: number;
   durationMinutes: number;
   sessionCount: number;
+  // Time-weighted mean of the sessions' average heart rates, so a long run
+  // counts more than a short one. null when no session carries a usable FC.
+  averageHeartRate: number | null;
 }
 
 export function aggregate(sessions: SessionForStats[]): PeriodTotals {
   let distanceKm = 0;
   let durationMinutes = 0;
+  let hrWeightedSum = 0;
+  let hrWeight = 0;
   for (const s of sessions) {
+    const minutes = sessionDurationMinutes(s.startTime, s.endTime);
     distanceKm += s.distanceKm;
-    durationMinutes += sessionDurationMinutes(s.startTime, s.endTime);
+    durationMinutes += minutes;
+    if (s.averageHeartRate > 0) {
+      // Zero-length sessions would otherwise carry no weight at all: fall back
+      // to counting them once so their FC is not silently dropped.
+      const weight = minutes > 0 ? minutes : 1;
+      hrWeightedSum += s.averageHeartRate * weight;
+      hrWeight += weight;
+    }
   }
   return {
     distanceKm,
     durationMinutes,
     sessionCount: sessions.length,
+    averageHeartRate: hrWeight > 0 ? Math.round(hrWeightedSum / hrWeight) : null,
   };
 }
 

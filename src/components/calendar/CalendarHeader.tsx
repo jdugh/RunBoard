@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 
-import { formatDistanceTotal } from "@/lib/format";
+import { formatDistanceTotal, formatHeartRate } from "@/lib/format";
 import { formatDurationFromMinutes } from "@/lib/duration";
 import { monthLabel, shiftMonthKey, todayMonthKey } from "@/lib/date";
 import type { PeriodTotals } from "@/lib/stats";
@@ -49,6 +49,9 @@ export function CalendarHeader({
               <>
                 {formatDistanceTotal(monthTotals.distanceKm)} ·{" "}
                 {formatDurationFromMinutes(monthTotals.durationMinutes)} ·{" "}
+                {monthTotals.averageHeartRate !== null && (
+                  <>FC moy. {formatHeartRate(monthTotals.averageHeartRate)} · </>
+                )}
                 {monthTotals.sessionCount} séance
                 {monthTotals.sessionCount > 1 ? "s" : ""}
               </>

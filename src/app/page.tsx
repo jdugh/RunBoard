@@ -32,7 +32,7 @@ export default async function HomePage({ searchParams }: PageProps) {
   }
 
   return (
-    <main className="container py-6 max-w-[1400px]">
+    <main className="mx-auto w-full max-w-[1800px] px-3 py-4 sm:px-4">
       <CalendarView monthKey={monthKey} currentUser={currentUser} users={users} />
     </main>
   );
