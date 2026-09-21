@@ -1,11 +1,13 @@
 services:
   app:
     build: .
+    container_name: "${COMPOSE_PROJECT_NAME:-runboard}"
     environment:
-      # SQLite stockée dans le volume `data`, pas dans le conteneur
-      DATABASE_URL: "file:/app/data/prod.db"
+      DATABASE_URL: "${DATABASE_URL:-file:/app/data/prod.db}"
     volumes:
       - data:/app/data
+    ports:
+      - "${APP_PORT:-3000}:3000"
     restart: unless-stopped
 
 volumes:
