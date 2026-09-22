@@ -133,6 +133,10 @@ export async function createSession(input: unknown): Promise<ActionResult> {
           extras?.track && extras.track.length > 0
             ? { create: { points: JSON.stringify(extras.track) } }
             : undefined,
+        laps:
+          extras?.laps && extras.laps.length > 0
+            ? { create: extras.laps }
+            : undefined,
       },
     });
   } catch (error) {

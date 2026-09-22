@@ -2,7 +2,7 @@ import { formatInTimeZone } from "date-fns-tz";
 
 import { secondsToPace } from "@/lib/pace";
 import { TIMEZONE } from "@/lib/date";
-import type { ActivitySummary, TrackPoint } from "@/lib/fit";
+import type { ActivityLap, ActivitySummary, TrackPoint } from "@/lib/fit";
 
 // A draft pre-filled from an imported activity. Every metric is optional:
 // missing values leave the corresponding form field empty so the user can
@@ -42,6 +42,7 @@ export interface ImportExtras {
   endLat?: number;
   endLng?: number;
   track?: TrackPoint[];
+  laps?: ActivityLap[];
 }
 
 function round2(value: number): number {
@@ -82,6 +83,7 @@ export function activityToExtras(
     endLat: u(a.endLat),
     endLng: u(a.endLng),
     track: a.track.length > 0 ? a.track : undefined,
+    laps: a.laps.length > 0 ? a.laps : undefined,
   };
 }
 

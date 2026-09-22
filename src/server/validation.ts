@@ -94,6 +94,54 @@ const trackPointSchema = z.object({
   hr: z.number().nullable(),
   cad: z.number().nullable(),
   d: z.number().nullable(),
+  // Written only when the device recorded them; absent on older tracks.
+  v: z.number().optional(),
+  pw: z.number().optional(),
+  gct: z.number().optional(),
+  vo: z.number().optional(),
+  sl: z.number().optional(),
+  tmp: z.number().optional(),
+});
+
+const nullableNumber = z.number().nullable();
+
+// One lap message. Everything but the index is nullable: the set of metrics a
+// lap carries depends on the watch and the sensors paired with it.
+const activityLapSchema = z.object({
+  lapIndex: z.number().int(),
+  startOffsetS: nullableNumber,
+  totalTimerS: nullableNumber,
+  totalElapsedS: nullableNumber,
+  totalMovingS: nullableNumber,
+  distanceM: nullableNumber,
+  avgSpeedMps: nullableNumber,
+  maxSpeedMps: nullableNumber,
+  avgHeartRate: nullableNumber,
+  maxHeartRate: nullableNumber,
+  minHeartRate: nullableNumber,
+  avgCadenceSpm: nullableNumber,
+  maxCadenceSpm: nullableNumber,
+  steps: nullableNumber,
+  calories: nullableNumber,
+  ascentM: nullableNumber,
+  descentM: nullableNumber,
+  avgPower: nullableNumber,
+  maxPower: nullableNumber,
+  normalizedPower: nullableNumber,
+  avgStanceTimeMs: nullableNumber,
+  avgStanceTimeBalance: nullableNumber,
+  avgVerticalOscMm: nullableNumber,
+  avgStepLengthMm: nullableNumber,
+  avgVerticalRatio: nullableNumber,
+  avgTemperature: nullableNumber,
+  maxTemperature: nullableNumber,
+  avgAltitudeM: nullableNumber,
+  startLat: nullableNumber,
+  startLng: nullableNumber,
+  endLat: nullableNumber,
+  endLng: nullableNumber,
+  lapTrigger: z.string().nullable(),
+  intensity: z.string().nullable(),
 });
 
 export const importExtrasSchema = z.object({
@@ -116,6 +164,7 @@ export const importExtrasSchema = z.object({
   endLat: z.number().optional(),
   endLng: z.number().optional(),
   track: z.array(trackPointSchema).max(100000).optional(),
+  laps: z.array(activityLapSchema).max(1000).optional(),
 });
 
 export type ImportExtrasInput = z.infer<typeof importExtrasSchema>;

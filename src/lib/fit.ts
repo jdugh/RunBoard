@@ -1,15 +1,48 @@
 import "server-only";
 import FitParser from "fit-file-parser";
 
-// One sampled point of the activity track (second-by-second).
-export interface TrackPoint {
-  t: number; // seconds from start
-  lat: number | null;
-  lng: number | null;
-  alt: number | null; // meters
-  hr: number | null; // bpm
-  cad: number | null; // steps per minute
-  d: number | null; // cumulative distance, meters
+import type { TrackPoint } from "@/lib/track";
+
+export type { TrackPoint };
+
+// One lap ("circuit") as delimited by the watch — auto-lap every kilometer by
+// default, or manual/interval boundaries. Mirrors the FIT lap message; every
+// metric is optional because availability depends on the device and sensors.
+export interface ActivityLap {
+  lapIndex: number; // 1-based, in recording order
+  startOffsetS: number | null; // seconds between session start and lap start
+  totalTimerS: number | null;
+  totalElapsedS: number | null;
+  totalMovingS: number | null;
+  distanceM: number | null;
+  avgSpeedMps: number | null;
+  maxSpeedMps: number | null;
+  avgHeartRate: number | null;
+  maxHeartRate: number | null;
+  minHeartRate: number | null;
+  avgCadenceSpm: number | null;
+  maxCadenceSpm: number | null;
+  steps: number | null;
+  calories: number | null;
+  ascentM: number | null;
+  descentM: number | null;
+  avgPower: number | null;
+  maxPower: number | null;
+  normalizedPower: number | null;
+  avgStanceTimeMs: number | null;
+  avgStanceTimeBalance: number | null;
+  avgVerticalOscMm: number | null;
+  avgStepLengthMm: number | null;
+  avgVerticalRatio: number | null;
+  avgTemperature: number | null;
+  maxTemperature: number | null;
+  avgAltitudeM: number | null;
+  startLat: number | null;
+  startLng: number | null;
+  endLat: number | null;
+  endLng: number | null;
+  lapTrigger: string | null;
+  intensity: string | null;
 }
 
 // Normalized summary of a single running activity extracted from a .FIT file.
@@ -42,10 +75,19 @@ export interface ActivitySummary {
   endLat: number | null;
   endLng: number | null;
   track: TrackPoint[];
+  laps: ActivityLap[];
 }
 
 function numOrNull(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+// Integer columns reject floats, and a FIT file may well report 2.0 or even
+// 12.6 where the profile says "integer" — the session mapping already guards
+// against this, and lap fields need the same treatment.
+function intOrNull(value: unknown): number | null {
+  const n = numOrNull(value);
+  return n === null ? null : Math.round(n);
 }
 
 function strOrNull(value: unknown): string | null {
@@ -66,6 +108,28 @@ function toDate(value: unknown): Date {
   return d;
 }
 
+// Seconds between the activity start and a message timestamp, or null when the
+// message carries no usable timestamp.
+function offsetSeconds(value: unknown, startMs: number): number | null {
+  if (value == null) return null;
+  const ms = toDate(value).getTime();
+  if (Number.isNaN(ms)) return null;
+  return Math.max(0, Math.round((ms - startMs) / 1000));
+}
+
+type OptionalPointKey = "v" | "pw" | "gct" | "vo" | "sl" | "tmp";
+
+// Copies `value` onto `target[key]` only when it is a usable number, so the
+// serialized track carries no keys for sensors the watch does not have.
+function putIfNumber(
+  target: TrackPoint,
+  key: OptionalPointKey,
+  value: unknown,
+): void {
+  const n = numOrNull(value);
+  if (n !== null) target[key] = n;
+}
+
 export async function parseFitActivity(
   buffer: ArrayBuffer,
 ): Promise<ActivitySummary> {
@@ -73,6 +137,7 @@ export async function parseFitActivity(
     mode: "list",
     lengthUnit: "m",
     speedUnit: "m/s",
+    temperatureUnit: "celsius",
     force: true,
   });
 
@@ -90,19 +155,73 @@ export async function parseFitActivity(
 
   const totalCycles = numOrNull(session.total_cycles);
 
-  const track: TrackPoint[] = (data.records ?? []).map((r) => ({
-    t: Math.max(0, Math.round((toDate(r.timestamp).getTime() - startMs) / 1000)),
+  const track: TrackPoint[] = (data.records ?? []).map((r) => {
+    const point: TrackPoint = {
+      t: Math.max(
+        0,
+        Math.round((toDate(r.timestamp).getTime() - startMs) / 1000),
+      ),
       lat: numOrNull(r.position_lat),
       lng: numOrNull(r.position_long),
       alt: numOrNull(r.enhanced_altitude ?? r.altitude),
       hr: numOrNull(r.heart_rate),
       cad: toSpm(r.cadence, r.fractional_cadence),
       d: numOrNull(r.distance),
-  }));
+    };
+    putIfNumber(point, "v", r.enhanced_speed ?? r.speed);
+    putIfNumber(point, "pw", r.power);
+    putIfNumber(point, "gct", r.stance_time);
+    putIfNumber(point, "vo", r.vertical_oscillation);
+    putIfNumber(point, "sl", r.step_length);
+    putIfNumber(point, "tmp", r.temperature);
+    return point;
+  });
+
+  const laps: ActivityLap[] = (data.laps ?? []).map((l, i) => {
+    const lapCycles = numOrNull(l.total_cycles);
+    return {
+      lapIndex: i + 1,
+      startOffsetS: offsetSeconds(l.start_time, startMs),
+      totalTimerS: numOrNull(l.total_timer_time),
+      totalElapsedS: numOrNull(l.total_elapsed_time),
+      totalMovingS: numOrNull(l.total_moving_time),
+      distanceM: numOrNull(l.total_distance),
+      avgSpeedMps: numOrNull(l.enhanced_avg_speed ?? l.avg_speed),
+      maxSpeedMps: numOrNull(l.enhanced_max_speed ?? l.max_speed),
+      avgHeartRate: intOrNull(l.avg_heart_rate),
+      maxHeartRate: intOrNull(l.max_heart_rate),
+      minHeartRate: intOrNull(l.min_heart_rate),
+      avgCadenceSpm: toSpm(l.avg_cadence, l.avg_fractional_cadence),
+      maxCadenceSpm: toSpm(l.max_cadence, l.max_fractional_cadence),
+      steps: lapCycles !== null ? Math.round(lapCycles * 2) : null,
+      calories: intOrNull(l.total_calories),
+      ascentM: intOrNull(l.total_ascent),
+      descentM: intOrNull(l.total_descent),
+      avgPower: intOrNull(l.avg_power),
+      maxPower: intOrNull(l.max_power),
+      normalizedPower: intOrNull(l.normalized_power),
+      avgStanceTimeMs: numOrNull(l.avg_stance_time),
+      avgStanceTimeBalance: numOrNull(l.avg_stance_time_balance),
+      avgVerticalOscMm: numOrNull(l.avg_vertical_oscillation),
+      avgStepLengthMm: numOrNull(l.avg_step_length),
+      avgVerticalRatio: numOrNull(l.avg_vertical_ratio),
+      avgTemperature: numOrNull(l.avg_temperature),
+      maxTemperature: numOrNull(l.max_temperature),
+      avgAltitudeM: numOrNull(l.enhanced_avg_altitude ?? l.avg_altitude),
+      startLat: numOrNull(l.start_position_lat),
+      startLng: numOrNull(l.start_position_long),
+      endLat: numOrNull(l.end_position_lat),
+      endLng: numOrNull(l.end_position_long),
+      lapTrigger: strOrNull(l.lap_trigger),
+      intensity: strOrNull(l.intensity),
+    };
+  });
 
   return {
     startTime,
-    durationSeconds: numOrNull(session.total_timer_time ?? session.total_elapsed_time),
+    durationSeconds: numOrNull(
+      session.total_timer_time ?? session.total_elapsed_time,
+    ),
     elapsedSeconds: numOrNull(session.total_elapsed_time),
     distanceMeters: numOrNull(session.total_distance),
     avgSpeedMps: numOrNull(session.avg_speed ?? session.enhanced_avg_speed),
@@ -126,5 +245,6 @@ export async function parseFitActivity(
     endLat: numOrNull(session.end_position_lat),
     endLng: numOrNull(session.end_position_long),
     track,
+    laps,
   };
 }

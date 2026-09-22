@@ -15,6 +15,9 @@ export interface SessionDTO {
   runType: string;
   customRunType: string | null;
   comment: string | null;
+  // Whether an imported track exists, so the edit modal knows to offer the
+  // map/charts/splits tabs. The track itself is never loaded here.
+  hasTrack: boolean;
 }
 
 // Loads all sessions of a given user whose date falls in
@@ -34,6 +37,7 @@ export async function getSessionsForRange(
       },
     },
     orderBy: [{ date: "asc" }, { startTime: "asc" }],
+    include: { track: { select: { id: true } } },
   });
 
   return rows.map((row) => ({
@@ -49,6 +53,7 @@ export async function getSessionsForRange(
     runType: row.runType,
     customRunType: row.customRunType,
     comment: row.comment,
+    hasTrack: row.track !== null,
   }));
 }
 
@@ -58,7 +63,10 @@ export async function getSessionById(
   userId: string,
   id: string,
 ): Promise<SessionDTO | null> {
-  const row = await prisma.runningSession.findFirst({ where: { id, userId } });
+  const row = await prisma.runningSession.findFirst({
+    where: { id, userId },
+    include: { track: { select: { id: true } } },
+  });
   if (!row) return null;
   return {
     id: row.id,
@@ -73,6 +81,7 @@ export async function getSessionById(
     runType: row.runType,
     customRunType: row.customRunType,
     comment: row.comment,
+    hasTrack: row.track !== null,
   };
 }
 

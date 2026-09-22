@@ -58,6 +58,7 @@ model RunningSession {
   endLng           Float?
 
   track     SessionTrack?
+  laps      SessionLap[]
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -69,10 +70,74 @@ model RunningSession {
 
 // Full second-by-second GPS/sensor track for an imported session, stored as a
 // JSON array. Kept in a separate table so the calendar queries never load it.
+//
+// Point shape: { t, lat, lng, alt, hr, cad, d, v?, pw?, gct?, vo?, sl?, tmp? }.
+// The first seven keys are always present (null when unavailable); the optional
+// ones are only written when the device actually recorded them, so tracks
+// imported before those fields were captured stay valid as-is.
 model SessionTrack {
   id        String         @id @default(cuid())
   sessionId String         @unique
   session   RunningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  points    String // JSON: [{ t, lat, lng, alt, hr, cad, d }]
+  points    String // JSON array of track points, see above
   createdAt DateTime       @default(now())
+}
+
+// One lap ("circuit") as recorded by the watch. Persisted verbatim from the FIT
+// lap messages so the splits table can show the device's own boundaries rather
+// than recomputed ones. Everything is nullable: which fields a lap carries
+// depends on the watch and the sensors paired with it.
+model SessionLap {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   RunningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  lapIndex  Int // 1-based, in recording order
+
+  startOffsetS  Int? // seconds between the session start and the lap start
+  totalTimerS   Float?
+  totalElapsedS Float?
+  totalMovingS  Float?
+  distanceM     Float?
+
+  avgSpeedMps Float?
+  maxSpeedMps Float?
+
+  avgHeartRate Int?
+  maxHeartRate Int?
+  minHeartRate Int?
+
+  avgCadenceSpm Int?
+  maxCadenceSpm Int?
+  steps         Int?
+
+  calories Int?
+  ascentM  Int?
+  descentM Int?
+
+  avgPower        Int?
+  maxPower        Int?
+  normalizedPower Int?
+
+  avgStanceTimeMs      Float?
+  avgStanceTimeBalance Float? // % on the left foot
+  avgVerticalOscMm     Float?
+  avgStepLengthMm      Float?
+  avgVerticalRatio     Float?
+
+  avgTemperature Float?
+  maxTemperature Float?
+  avgAltitudeM   Float?
+
+  startLat Float?
+  startLng Float?
+  endLat   Float?
+  endLng   Float?
+
+  lapTrigger String? // e.g. "distance" (auto-lap) vs "manual"
+  intensity  String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([sessionId, lapIndex])
+  @@index([sessionId])
 }
