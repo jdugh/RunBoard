@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: ghcr.io/jdugh/tradeboard:latest
     container_name: "${COMPOSE_PROJECT_NAME:-runboard}"
     environment:
       DATABASE_URL: "${DATABASE_URL:-file:/app/data/prod.db}"
