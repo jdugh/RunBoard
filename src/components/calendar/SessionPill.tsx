@@ -5,7 +5,12 @@ import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import type { SessionDTO } from "@/server/sessions";
-import { runTypeLabel, formatDistanceKm, formatHeartRate } from "@/lib/format";
+import {
+  runTypeLabel,
+  formatDistanceKm,
+  formatHeartRate,
+  formatPaceKm,
+} from "@/lib/format";
 import { sessionDurationMinutes, formatDurationCompact } from "@/lib/duration";
 import { deleteSession } from "@/app/actions";
 import { cn } from "@/lib/utils";
@@ -64,11 +69,21 @@ export function SessionPill({ session }: SessionPillProps) {
           RUN_TYPE_STYLES[session.runType] ?? RUN_TYPE_STYLES.AUTRE,
         )}
       >
-        <div className="flex items-start justify-between gap-1">
-          <div className="font-semibold truncate">
+        {/* Durée remontée sur la première ligne pour laisser la place à
+            l'allure en seconde ligne, sans passer sur une 3e ligne. Les deux
+            colonnes latérales en 1fr se partagent l'espace restant à parts
+            égales : la durée reste donc centrée sur l'item. */}
+        <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-1">
+          <div className="font-semibold truncate min-w-0">
             {runTypeLabel(session.runType, session.customRunType)}
           </div>
-          <div className="flex gap-0.5 -mr-1 -mt-0.5">
+          <span
+            className="tabular-nums text-[10px] font-normal opacity-90"
+            title={`Durée : ${duration}`}
+          >
+            {duration}
+          </span>
+          <div className="flex gap-0.5 justify-end min-w-0 -mr-1 -mt-0.5">
             <button
               type="button"
               onClick={() => setEditOpen(true)}
@@ -88,8 +103,17 @@ export function SessionPill({ session }: SessionPillProps) {
           </div>
         </div>
         <div className="flex items-baseline justify-between gap-1 text-[10px] opacity-90">
-          <span className="tabular-nums">
+          <span
+            className="tabular-nums"
+            title={`Distance : ${formatDistanceKm(session.distanceKm)}`}
+          >
             {formatDistanceKm(session.distanceKm)}
+          </span>
+          <span
+            className="tabular-nums"
+            title={`Allure moyenne : ${formatPaceKm(session.averagePace)}`}
+          >
+            {formatPaceKm(session.averagePace)}
           </span>
           {session.averageHeartRate > 0 && (
             <span
@@ -99,7 +123,6 @@ export function SessionPill({ session }: SessionPillProps) {
               {formatHeartRate(session.averageHeartRate)}
             </span>
           )}
-          <span className="tabular-nums">{duration}</span>
         </div>
       </div>
 

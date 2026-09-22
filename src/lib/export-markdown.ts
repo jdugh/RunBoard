@@ -171,6 +171,7 @@ export function buildSessionsMarkdown(
   lines.push("- Les allures sont en minutes:secondes par kilomètre : plus la valeur est petite, plus la course est rapide.");
   lines.push("- « D+ » et « D- » sont les dénivelés positif et négatif cumulés, en mètres.");
   lines.push("- Une cellule vide signifie que la donnée n'a pas été enregistrée pour cette séance.");
+  lines.push("- Le type de sortie 'EF' signifie Endurance Fondamental");
   lines.push("");
 
   return lines.join("\n");

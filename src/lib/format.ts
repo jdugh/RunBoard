@@ -1,3 +1,5 @@
+import { formatPace, secondsToPace } from "./pace";
+
 const distanceFormatter = new Intl.NumberFormat("fr-FR", {
   minimumFractionDigits: 1,
   maximumFractionDigits: 2,
@@ -18,6 +20,15 @@ export function formatDistanceTotal(km: number): string {
 
 export function formatHeartRate(bpm: number): string {
   return `${Math.round(bpm)} bpm`;
+}
+
+// Allure stored as "mm:ss" per km, rendered with its unit.
+export function formatPaceKm(pace: string): string {
+  return `${formatPace(pace)}/km`;
+}
+
+export function formatPaceFromSeconds(secondsPerKm: number): string {
+  return `${secondsToPace(secondsPerKm)}/km`;
 }
 
 export const RUN_TYPE_LABELS: Record<string, string> = {

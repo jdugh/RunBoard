@@ -15,6 +15,10 @@ export interface PeriodTotals {
   // Time-weighted mean of the sessions' average heart rates, so a long run
   // counts more than a short one. null when no session carries a usable FC.
   averageHeartRate: number | null;
+  // Overall pace in seconds per km, derived from the totals (total time over
+  // total distance) rather than averaging the per-session paces, so each
+  // kilometre weighs the same. null when there is no distance or no time.
+  averagePaceSeconds: number | null;
 }
 
 export function aggregate(sessions: SessionForStats[]): PeriodTotals {
@@ -39,6 +43,10 @@ export function aggregate(sessions: SessionForStats[]): PeriodTotals {
     durationMinutes,
     sessionCount: sessions.length,
     averageHeartRate: hrWeight > 0 ? Math.round(hrWeightedSum / hrWeight) : null,
+    averagePaceSeconds:
+      distanceKm > 0 && durationMinutes > 0
+        ? Math.round((durationMinutes * 60) / distanceKm)
+        : null,
   };
 }
 

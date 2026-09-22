@@ -54,6 +54,7 @@ export function ImportButton() {
         size="sm"
         disabled={isPending}
         onClick={() => inputRef.current?.click()}
+        className="bg-violet-50 text-violet-900 border-violet-200 hover:bg-violet-100 hover:text-violet-900"
       >
         <Upload className="h-4 w-4" />
         {isPending ? "Lecture…" : "Importer une séance"}

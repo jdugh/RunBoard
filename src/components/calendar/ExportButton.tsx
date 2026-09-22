@@ -128,6 +128,7 @@ export function ExportButton() {
         size="sm"
         onClick={() => setOpen(true)}
         title="Exporter les séances au format markdown"
+        className="bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100 hover:text-sky-900"
       >
         <FileDown className="h-4 w-4" />
         Exporter les séances

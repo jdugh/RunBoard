@@ -1,4 +1,8 @@
-import { formatDistanceTotal, formatHeartRate } from "@/lib/format";
+import {
+  formatDistanceTotal,
+  formatHeartRate,
+  formatPaceFromSeconds,
+} from "@/lib/format";
 import { formatDurationCompact } from "@/lib/duration";
 import type { PeriodTotals } from "@/lib/stats";
 
@@ -19,6 +23,12 @@ export function WeekStatsCell({ totals }: WeekStatsCellProps) {
             label="Durée"
             value={formatDurationCompact(totals.durationMinutes)}
           />
+          {totals.averagePaceSeconds !== null && (
+            <Stat
+              label="Allure"
+              value={formatPaceFromSeconds(totals.averagePaceSeconds)}
+            />
+          )}
           {totals.averageHeartRate !== null && (
             <Stat
               label="FC"
