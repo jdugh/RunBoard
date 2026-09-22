@@ -69,7 +69,7 @@ function downloadMarkdown(fileName: string, markdown: string) {
 
 export function ExportButton() {
   const [open, setOpen] = useState(false);
-  const [preset, setPreset] = useState<ExportPreset>("CURRENT_MONTH");
+  const [preset, setPreset] = useState<ExportPreset>("ALL");
   const [startDate, setStartDate] = useState(() =>
     startOfMonthDayKey(todayKey()),
   );
