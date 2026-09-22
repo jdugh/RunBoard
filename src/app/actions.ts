@@ -2,8 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { dayKeyToDate } from "@/lib/date";
-import { sessionInputSchema, importExtrasSchema } from "@/server/validation";
+import {
+  dayKeyToDate,
+  endOfMonthDayKey,
+  shiftDayKeyByMonths,
+  startOfMonthDayKey,
+  todayKey,
+} from "@/lib/date";
+import {
+  sessionInputSchema,
+  importExtrasSchema,
+  exportRangeSchema,
+  type ExportRangeInput,
+} from "@/server/validation";
 import { parseFitActivity } from "@/lib/fit";
 import {
   activityToDraft,
@@ -12,10 +23,21 @@ import {
   type ImportExtras,
 } from "@/lib/fit-to-session";
 import { extractFit, externalIdFromFileName } from "@/lib/import-file";
-import { requireCurrentUserId } from "@/server/current-user";
+import { getCurrentUser, requireCurrentUserId } from "@/server/current-user";
+import { getSessionsForExport } from "@/server/sessions";
+import { buildSessionsMarkdown } from "@/lib/export-markdown";
 
 export interface ActionResult {
   ok: boolean;
+  fieldErrors?: Record<string, string>;
+  error?: string;
+}
+
+export interface ExportResult {
+  ok: boolean;
+  markdown?: string;
+  fileName?: string;
+  sessionCount?: number;
   fieldErrors?: Record<string, string>;
   error?: string;
 }
@@ -237,4 +259,82 @@ export async function deleteSession(id: string): Promise<ActionResult> {
   }
   revalidatePath("/");
   return { ok: true };
+}
+
+// Resolves a preset to inclusive day-key bounds. "Mois en cours" covers the
+// whole month (planned sessions included); the rolling windows end today.
+function resolveExportRange(
+  input: ExportRangeInput,
+): { startKey: string | null; endKey: string | null } {
+  const today = todayKey();
+  switch (input.preset) {
+    case "CURRENT_MONTH":
+      return {
+        startKey: startOfMonthDayKey(today),
+        endKey: endOfMonthDayKey(today),
+      };
+    case "LAST_3_MONTHS":
+      return { startKey: shiftDayKeyByMonths(today, -3), endKey: today };
+    case "LAST_6_MONTHS":
+      return { startKey: shiftDayKeyByMonths(today, -6), endKey: today };
+    case "ALL":
+      return { startKey: null, endKey: null };
+    case "CUSTOM":
+      return {
+        startKey: input.startDate ?? null,
+        endKey: input.endDate ?? null,
+      };
+  }
+}
+
+function slugify(value: string): string {
+  return (
+    value
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "coureur"
+  );
+}
+
+export async function exportSessionsMarkdown(
+  input: unknown,
+): Promise<ExportResult> {
+  const parsed = exportRangeSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, fieldErrors: flatten(parsed.error) };
+  }
+  const user = await getCurrentUser();
+  if (!user) {
+    return { ok: false, error: "Aucun utilisateur sélectionné" };
+  }
+
+  const { startKey, endKey } = resolveExportRange(parsed.data);
+  let sessions;
+  try {
+    sessions = await getSessionsForExport(user.id, startKey, endKey);
+  } catch {
+    return { ok: false, error: "Échec de l'export" };
+  }
+  if (sessions.length === 0) {
+    return { ok: false, error: "Aucune séance sur cette période." };
+  }
+
+  const markdown = buildSessionsMarkdown(sessions, {
+    userName: user.name,
+    rangeStartKey: startKey,
+    rangeEndKey: endKey,
+    generatedOnKey: todayKey(),
+  });
+
+  const suffix =
+    startKey && endKey ? `${startKey}_${endKey}` : "tout-historique";
+
+  return {
+    ok: true,
+    markdown,
+    fileName: `seances-${slugify(user.name)}-${suffix}.md`,
+    sessionCount: sessions.length,
+  };
 }

@@ -119,3 +119,50 @@ export const importExtrasSchema = z.object({
 });
 
 export type ImportExtrasInput = z.infer<typeof importExtrasSchema>;
+
+// Markdown export: either a named preset resolved server-side against today's
+// date, or an explicit [startDate, endDate] range.
+export const EXPORT_PRESETS = [
+  "CURRENT_MONTH",
+  "LAST_3_MONTHS",
+  "LAST_6_MONTHS",
+  "ALL",
+  "CUSTOM",
+] as const;
+
+export type ExportPreset = (typeof EXPORT_PRESETS)[number];
+
+export const exportRangeSchema = z
+  .object({
+    preset: z.enum(EXPORT_PRESETS, {
+      errorMap: () => ({ message: "Période invalide" }),
+    }),
+    startDate: dayKeySchema.optional(),
+    endDate: dayKeySchema.optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.preset !== "CUSTOM") return;
+    if (!data.startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["startDate"],
+        message: "Renseignez la date de début",
+      });
+    }
+    if (!data.endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "Renseignez la date de fin",
+      });
+    }
+    if (data.startDate && data.endDate && data.startDate > data.endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "La date de fin doit être postérieure à la date de début",
+      });
+    }
+  });
+
+export type ExportRangeInput = z.infer<typeof exportRangeSchema>;

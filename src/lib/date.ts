@@ -78,6 +78,34 @@ export function monthLabel(monthKey: string): string {
   return format(ref, "LLLL yyyy", { locale: fr });
 }
 
+// Number of days in a 1-based (year, month), computed in UTC so it never
+// depends on the local timezone.
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+// Last day key of the month a day key belongs to.
+export function endOfMonthDayKey(dayKey: string): string {
+  const [y, m] = dayKey.split("-").map(Number);
+  return dayKeyFromYMD(y, m, daysInMonth(y, m));
+}
+
+// First day key of the month a day key belongs to.
+export function startOfMonthDayKey(dayKey: string): string {
+  const [y, m] = dayKey.split("-").map(Number);
+  return dayKeyFromYMD(y, m, 1);
+}
+
+// Shifts a day key by whole months, clamping the day to the target month's
+// length (31/01 minus one month gives 28 or 29/02).
+export function shiftDayKeyByMonths(dayKey: string, delta: number): string {
+  const [y, m, d] = dayKey.split("-").map(Number);
+  const total = y * 12 + (m - 1) + delta;
+  const year = Math.floor(total / 12);
+  const month = (total % 12) + 1;
+  return dayKeyFromYMD(year, month, Math.min(d, daysInMonth(year, month)));
+}
+
 // Calendar grid model: 6 weeks x 7 days, week starts Monday.
 export interface CalendarDay {
   dayKey: string;

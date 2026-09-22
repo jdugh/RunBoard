@@ -12,6 +12,7 @@ import type { UserDTO } from "@/server/users";
 import { Button } from "@/components/ui/button";
 import { UserSwitcher } from "@/components/user/UserSwitcher";
 import { ImportButton } from "./ImportButton";
+import { ExportButton } from "./ExportButton";
 
 interface CalendarHeaderProps {
   monthKey: string;
@@ -73,6 +74,7 @@ export function CalendarHeader({
             </Link>
           </Button>
         )}
+        <ExportButton />
         <ImportButton />
         <UserSwitcher currentUser={currentUser} users={users} />
       </div>
